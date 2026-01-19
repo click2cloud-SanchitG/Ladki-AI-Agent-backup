@@ -11,7 +11,7 @@ export interface ChatResponse {
     providedIn: 'root'
 })
 export class ChatService {
-    private apiUrl = 'http://localhost:9015/smart-chat-router-ladki-bahin';
+    private apiUrl = 'http://192.168.3.4:9015/smart-chat-router-ladki-bahin';
 
     constructor(private http: HttpClient) { }
 
@@ -46,9 +46,27 @@ export class ChatService {
         return this.http.post<ChatResponse>(this.apiUrl, formData);
     }
 
-    getAudio(text: string): Observable<Blob> {
-        return this.http.post('http://localhost:9015/api/tts', { text: text }, {
-            responseType: 'blob'
-        });
+    // Use the key directly in frontend as requested for performance (Note: In production, use backend proxy or secure handling)
+    private googleApiKey = 'AIzaSyBO3X0qduusrkHndnV-C7Eo839BlL6pIxw';
+    private ttsApiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent';
+
+    getAudio(text: string): Observable<any> {
+        const url = `${this.ttsApiUrl}?key=${this.googleApiKey}`;
+        const payload = {
+            "contents": [{
+                "parts": [{ "text": `Say cheerfully: ${text}` }]
+            }],
+            "generationConfig": {
+                "responseModalities": ["AUDIO"],
+                "speechConfig": {
+                    "voiceConfig": {
+                        "prebuiltVoiceConfig": {
+                            "voiceName": "Aoede"
+                        }
+                    }
+                }
+            }
+        };
+        return this.http.post(url, payload);
     }
 }
