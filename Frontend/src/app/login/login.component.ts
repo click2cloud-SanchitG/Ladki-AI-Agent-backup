@@ -224,6 +224,8 @@ export class LoginComponent implements OnInit {
   currentAudio: HTMLAudioElement | null = null;
   isPlaying: boolean = false;
 
+  
+  
   playTextToSpeech(text: string) {
     if (this.currentAudio) {
       this.currentAudio.pause();
@@ -231,24 +233,118 @@ export class LoginComponent implements OnInit {
       this.isPlaying = false;
     }
 
-    // Strip markdown chars if any? for now simple text
-    // The backend might need to handle cleaning if needed, but text usually comes clean or with simple formatting
+    if (!text) return;
 
-    this.chatService.getAudio(text).subscribe({
-      next: (blob) => {
-        const url = URL.createObjectURL(blob);
-        this.currentAudio = new Audio(url);
-        this.currentAudio.play();
-        this.isPlaying = true;
-        this.currentAudio.onended = () => {
-          this.isPlaying = false;
-          this.currentAudio = null;
-        };
+    // Clean text before sending to TTS (remove markdown, etc)
+    const cleanedText = this.cleanTextForTTS(text);
+
+    this.chatService.getAudio(cleanedText).subscribe({
+      next: (response: any) => {
+        try {
+          const candidates = response.candidates;
+          if (candidates && candidates.length > 0) {
+            const parts = candidates[0].content.parts;
+            if (parts && parts.length > 0) {
+              const base64Data = parts[0].inlineData.data;
+              const pcmData = this.base64ToUint8Array(base64Data);
+              const wavData = this.addWavHeader(pcmData, 24000, 1, 16);
+              const blob = new Blob([wavData as any], { type: 'audio/wav' });
+
+              const url = URL.createObjectURL(blob);
+              this.currentAudio = new Audio(url);
+              this.currentAudio.play();
+              this.isPlaying = true;
+              this.currentAudio.onended = () => {
+                this.isPlaying = false;
+                this.currentAudio = null;
+              };
+              return;
+            }
+          }
+          console.error("No audio data found in response");
+        } catch (e) {
+          console.error("Error processing audio response", e);
+        }
       },
       error: (err) => {
         console.error("Audio playback error", err);
       }
     });
+  }
+
+  base64ToUint8Array(base64: string): Uint8Array {
+    const binaryString = window.atob(base64);
+    const len = binaryString.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    return bytes;
+  }
+
+  addWavHeader(samples: Uint8Array, sampleRate: number, numChannels: number, bitDepth: number): Uint8Array {
+    const blockAlign = numChannels * bitDepth / 8;
+    const byteRate = sampleRate * blockAlign;
+    const dataSize = samples.length;
+    const buffer = new ArrayBuffer(44 + dataSize);
+    const view = new DataView(buffer);
+
+    /* RIFF identifier */
+    this.writeString(view, 0, 'RIFF');
+    /* RIFF chunk length */
+    view.setUint32(4, 36 + dataSize, true);
+    /* RIFF type */
+    this.writeString(view, 8, 'WAVE');
+    /* format chunk identifier */
+    this.writeString(view, 12, 'fmt ');
+    /* format chunk length */
+    view.setUint32(16, 16, true);
+    /* sample format (raw) */
+    view.setUint16(20, 1, true);
+    /* channel count */
+    view.setUint16(22, numChannels, true);
+    /* sample rate */
+    view.setUint32(24, sampleRate, true);
+    /* byte rate (sample rate * block align) */
+    view.setUint32(28, byteRate, true);
+    /* block align (channel count * bytes per sample) */
+    view.setUint16(32, blockAlign, true);
+    /* bits per sample */
+    view.setUint16(34, bitDepth, true);
+    /* data chunk identifier */
+    this.writeString(view, 36, 'data');
+    /* data chunk length */
+    view.setUint32(40, dataSize, true);
+
+    // Write audio data
+    const headerBytes = new Uint8Array(buffer, 0, 44);
+    headerBytes.set(new Uint8Array(buffer.slice(0, 44))); // just ensuring we have the header
+    // Actually we need to combine header and data.
+    // Let's do it using Uint8Array set
+    const wavBytes = new Uint8Array(buffer);
+    wavBytes.set(samples, 44);
+
+    return wavBytes;
+  }
+
+  writeString(view: DataView, offset: number, string: string) {
+    for (let i = 0; i < string.length; i++) {
+      view.setUint8(offset + i, string.charCodeAt(i));
+    }
+  }
+
+  cleanTextForTTS(text: string): string {
+    if (!text) return '';
+    // Remove bold/italic markers (**text** or *text* or __text__)
+    let cleaned = text.replace(/[\*_]{1,2}/g, '');
+    // Remove links [text](url) -> text
+    cleaned = cleaned.replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1');
+    // Remove code blocks
+    cleaned = cleaned.replace(/`{1,3}[^`]*`{1,3}/g, '');
+    // Remove HTML tags if any (basic)
+    cleaned = cleaned.replace(/<[^>]*>/g, '');
+
+    return cleaned.trim();
   }
   formatMessage(text: string): string {
     if (!text) return '';
