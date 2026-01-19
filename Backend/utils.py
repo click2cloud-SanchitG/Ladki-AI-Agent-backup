@@ -175,15 +175,21 @@ def extract_text_from_bytes(file_bytes: bytes, extension: str) -> str:
         return ""
 
 
-def detect_aadhaar_side(text: str) -> str:
-
-    # Front side typically has the 12-digit Aadhaar number prominently
-    if re.search(r'\b\d{4}\s?\d{4}\s?\d{4}\b', text):
-        return "front"
+def detect_aadhaar_side(text: str) -> str: 
+    text_lower = text.lower()
     
-    # Back side has address information
+    # Back side has address information - CHECK THIS FIRST
     if re.search(r'Address|पत्ता|पता', text, re.IGNORECASE):
         return "back"
+    
+    # Front side has name, DOB, and gender
+    has_dob = bool(re.search(r'\b\d{2}/\d{2}/\d{4}\b', text))
+    has_gender = bool(re.search(r'\b(?:Male|Female|पुरुष|महिला|स्त्री)\b', text, re.IGNORECASE))
+    has_name_label = bool(re.search(r'\b(?:Name|नाम|नांव)\b', text, re.IGNORECASE))
+    
+    # If has DOB or gender or name label, it's front
+    if has_dob or has_gender or has_name_label:
+        return "front"
     
     return "unknown"
 
@@ -369,10 +375,6 @@ def merge_aadhaar(front: Dict[str, Any], back: Dict[str, Any]) -> Dict[str, Any]
         "district": back.get("State"),
         "country": back.get("Country", "India")
     }
-
-
-def clean_text(text: str) -> str:
-    return bool(re.fullmatch(r'\d{12}', aadhaar_number))
 
 
 def clean_text(text: str) -> str:
