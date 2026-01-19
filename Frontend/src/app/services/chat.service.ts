@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-
+import { environment } from '../../environments/environment';
 export interface ChatResponse {
     response: string | any;
     mode: string;
@@ -47,7 +47,7 @@ export class ChatService {
     }
 
     // Use the key directly in frontend as requested for performance (Note: In production, use backend proxy or secure handling)
-    private googleApiKey = 'AIzaSyBO3X0qduusrkHndnV-C7Eo839BlL6pIxw';
+    private googleApiKey = environment.googleApiKey;
     private ttsApiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent';
 
     getAudio(text: string): Observable<any> {

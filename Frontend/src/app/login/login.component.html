@@ -75,21 +75,21 @@
                                 <ng-container *ngIf="!msg.isUser">
                                     <img class="bot_icon" src="/assets/images/chatbot/chat_bot.svg">
                                     <div class="chat_outer">
-                                    <div class="chat">
-                                        <a class="btn-link speakar_btn" (click)="playTextToSpeech(msg.text)"> <img
-                                                src="/assets/images/chatbot/speakar.svg"></a>
-                                        <span [innerHTML]="formatMessage(msg.text)"></span>
-                                    </div>
-                                                            <ul class="default_questions" *ngIf="messages.length <= 1">
-                            <li (click)="handleQuickReply('पात्रता तपासायची आहे का ?')"><img
-                                    src="/assets/images/chatbot/search.svg">पात्रता तपासायची आहे का ? </li>
-                            <li (click)="handleQuickReply('नवीन अर्ज करायचा आहे का ?')"><img
-                                    src="/assets/images/chatbot/new_application.svg">नवीन अर्ज करायचा आहे का ?</li>
-                            <li (click)="handleQuickReply('अर्जाची स्थिती पाहायची आहे का ?')"><img
-                                    src="/assets/images/chatbot/status.svg">अर्जाची स्थिती पाहायची आहे का ?</li>
-                            <li (click)="handleQuickReply('तक्रार नोंदवायची आहे का ?')"><img
-                                    src="/assets/images/chatbot/complaint.svg">तक्रार नोंदवायची आहे का ?</li>
-                        </ul>
+                                        <div class="chat">
+                                            <a class="btn-link speakar_btn" (click)="playTextToSpeech(msg)"> <img
+                                                    [src]="msg.isPlaying ? '/assets/images/chatbot/pause.svg' : '/assets/images/chatbot/speakar.svg'"></a>
+                                            <span [innerHTML]="formatMessage(msg.text)"></span>
+                                        </div>
+                                        <ul class="default_questions" *ngIf="messages.length <= 1">
+                                            <li (click)="handleQuickReply('पात्रता तपासायची आहे का ?')"><img
+                                                src="/assets/images/chatbot/search.svg">पात्रता तपासायची आहे का ? </li>
+                                            <li (click)="handleQuickReply('नवीन अर्ज करायचा आहे का ?')"><img
+                                                    src="/assets/images/chatbot/new_application.svg">नवीन अर्ज करायचा आहे का ?</li>
+                                            <li (click)="handleQuickReply('अर्जाची स्थिती पाहायची आहे का ?')"><img
+                                                    src="/assets/images/chatbot/status.svg">अर्जाची स्थिती पाहायची आहे का ?</li>
+                                            <li (click)="handleQuickReply('तक्रार नोंदवायची आहे का ?')"><img
+                                                src="/assets/images/chatbot/complaint.svg">तक्रार नोंदवायची आहे का ?</li>
+                                        </ul>
                                     </div>
 
                                 </ng-container>
@@ -102,7 +102,7 @@
                             </li>
                         </ng-container>
                         <!--Attach BTN ANd Yes no button -->
-                                                <!-- <li class="response bot_response">
+                        <!-- <li class="response bot_response">
                             <img class="bot_icon" src="/assets/images/chatbot/chat_bot.svg">
                             <div class="chat_outer">
                             <div class="chat">
@@ -127,7 +127,7 @@
                              </div>
                              </div>
                         </li> -->
-                      <!--Attach BTN ANd Yes no button -->
+                        <!--Attach BTN ANd Yes no button -->
                         <!-- <li class="response user_query">
                             <div class="chat">
                                 योजनेची माहिती द्या ?
@@ -169,9 +169,9 @@
                                         </li>
                                     </ul>
                                     <input type="file"
-                                     hidden 
-                                     #fileInput 
-                                     (change)="onFileSelected($event)">
+                                     hidden
+                                      #fileInput 
+                                      (change)="onFileSelected($event)">
                                 </div>
 
                             </div>

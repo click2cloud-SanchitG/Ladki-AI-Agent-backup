@@ -6,6 +6,7 @@ interface ChatMessage {
   isUser: boolean;
   type?: 'text' | 'image' | 'file';
   file?: File;
+  isPlaying?: boolean;
 }
 
 @Component({
@@ -222,24 +223,42 @@ export class LoginComponent implements OnInit {
   }
 
   currentAudio: HTMLAudioElement | null = null;
-  isPlaying: boolean = false;
+  currentPlayingMsg: ChatMessage | null = null;
 
-  
-  
-  playTextToSpeech(text: string) {
+
+
+  stopAudio() {
     if (this.currentAudio) {
       this.currentAudio.pause();
       this.currentAudio = null;
-      this.isPlaying = false;
+    }
+    if (this.currentPlayingMsg) {
+      this.currentPlayingMsg.isPlaying = false;
+      this.currentPlayingMsg = null;
+    }
+  }
+
+  playTextToSpeech(msg: ChatMessage) {
+    if (this.currentPlayingMsg === msg) {
+      this.stopAudio();
+      return;
     }
 
-    if (!text) return;
+    this.stopAudio();
+
+    if (!msg.text) return;
+
+    this.currentPlayingMsg = msg;
+    msg.isPlaying = true;
 
     // Clean text before sending to TTS (remove markdown, etc)
-    const cleanedText = this.cleanTextForTTS(text);
+    const cleanedText = this.cleanTextForTTS(msg.text);
 
     this.chatService.getAudio(cleanedText).subscribe({
       next: (response: any) => {
+        // If the user stopped the audio while it was loading or switched to another message
+        if (this.currentPlayingMsg !== msg) return;
+
         try {
           const candidates = response.candidates;
           if (candidates && candidates.length > 0) {
@@ -253,21 +272,22 @@ export class LoginComponent implements OnInit {
               const url = URL.createObjectURL(blob);
               this.currentAudio = new Audio(url);
               this.currentAudio.play();
-              this.isPlaying = true;
               this.currentAudio.onended = () => {
-                this.isPlaying = false;
-                this.currentAudio = null;
+                this.stopAudio();
               };
               return;
             }
           }
           console.error("No audio data found in response");
+          this.stopAudio(); // Reset state if no audio
         } catch (e) {
           console.error("Error processing audio response", e);
+          this.stopAudio(); // Reset state on error
         }
       },
       error: (err) => {
         console.error("Audio playback error", err);
+        this.stopAudio(); // Reset state on error
       }
     });
   }
